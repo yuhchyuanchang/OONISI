@@ -1,42 +1,19 @@
-name: PapersBot to Teams
+name: post-to-teams
 
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 1 * * *"   # 毎日 UTC 01:00（日本時間 10:00）
+    - cron: "0 */6 * * *"  # 6時間ごと（好きに変更）
 
 jobs:
-  run:
+  post:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          pip install -r requirements.txt
-
-      - name: Run PapersBot
-        run: |
-          python papersbot.py > output.txt
-
-      - name: Post result to Teams
+      - name: POST to Power Automate (Teams)
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
-          if [ ! -s output.txt ]; then
-            echo "No output from PapersBot"
-            exit 0
-          fi
-
-          MESSAGE=$(sed ':a;N;$!ba;s/\n/\\n/g' output.txt)
-
+          test -n "$TEAMS_WEBHOOK_URL" || (echo "❌ Secret empty" && exit 1)
           curl -sS -X POST "$TEAMS_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            --data-raw "{\"user_name\":\"PapersBot\",\"feedback_message\":\"$MESSAGE\",\"timestamp\":\"$(date -u +'%Y-%m-%d %H:%M:%S UTC')\",\"host\":\"github-actions\"}"
+            -d "{\"user_name\":\"GitHub Actions\",\"feedback_message\":\"テスト通知\",\"timestamp\":\"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\",\"host\":\"github-actions\"}"
