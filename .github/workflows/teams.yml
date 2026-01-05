@@ -1,0 +1,17 @@
+name: Test Teams Webhook
+
+on:
+  workflow_dispatch:
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post test message to Teams
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          test -n "$TEAMS_WEBHOOK_URL" || (echo "❌ Secret empty" && exit 1)
+          curl -sS -X POST "$TEAMS_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"user_name\":\"GitHub Actions\",\"feedback_message\":\"テスト投稿\",\"timestamp\":\"$(date -u +'%Y-%m-%d %H:%M:%S UTC')\",\"host\":\"github-actions\"}"
