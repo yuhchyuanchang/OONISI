@@ -1,27 +1,37 @@
-name: Run PapersBot and post to Teams
-    env:
-      TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+name: PapersBot → Teams
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *" # UTC 00:00 = JST 09:00
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install
+        run: pip install -r requirements.txt
+
+      - name: Run PapersBot and post to Teams
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
           set -euo pipefail
           test -n "$TEAMS_WEBHOOK_URL" || (echo "❌ Secret empty" && exit 1)
 
-          # PapersBot 実行（Twitter無効）
+          # PapersBot 実行（Twitter無効。未対応ならここでエラーになります）
           python papersbot.py --no-twitter > out.txt
 
-          # JSONを安全に作ってPOST（jq不要）
-          python - <<'PY'
-          import json, datetime, os
-          msg = open("out.txt", "r", encoding="utf-8", errors="replace").read().strip()
-          payload = {
-              "user_name": "PapersBot",
-              "feedback_message": msg if msg else "（新着なし）",
-              "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-              "host": "github-actions",
-          }
-          print(json.dumps(payload, ensure_ascii=False))
-          PY
-          > payload.json
+          # out.txt を安全にJSON化して payload.json を作る（jq不要）
+          python -c 'import json,datetime; msg=open("out.txt","r",encoding="utf-8",errors="replace").read().strip(); payload={"user_name":"PapersBot","feedback_message":(msg if msg else "（新着なし）"),"timestamp":datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),"host":"github-actions"}; print(json.dumps(payload, ensure_ascii=False))' > payload.json
 
+          # Teams Webhook（Power Automate）へPOST
           curl -sS -X POST "$TEAMS_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json
