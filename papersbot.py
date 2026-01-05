@@ -277,7 +277,7 @@ class PapersBot:
     n_seen = 0
     n_tweeted = 0
 
-    def __init__(self, doTweet=True):
+    def __init__(self, doTweet=False):
         self.feeds = readFeedsList()
         self.posted = readPosted()
 
