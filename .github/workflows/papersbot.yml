@@ -1,19 +1,21 @@
-name: post-to-teams
+name: Test Teams Webhook
 
 on:
   workflow_dispatch:
-  schedule:
-    - cron: "0 */6 * * *"  # 6時間ごと（好きに変更）
 
 jobs:
   post:
     runs-on: ubuntu-latest
     steps:
-      - name: POST to Power Automate (Teams)
+      - name: Post test message to Teams
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
         run: |
-          test -n "$TEAMS_WEBHOOK_URL" || (echo "❌ Secret empty" && exit 1)
+          if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+            echo "❌ Secret is empty"
+            exit 1
+          fi
+
           curl -sS -X POST "$TEAMS_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"user_name\":\"GitHub Actions\",\"feedback_message\":\"テスト通知\",\"timestamp\":\"$(date -u +'%Y-%m-%dT%H:%M:%SZ')\",\"host\":\"github-actions\"}"
+            --data-raw '{"user_name":"GitHub Actions","feedback_message":"Secrets 動作確認テスト 🎉","timestamp":"'"$(date -u +"%Y-%m-%d %H:%M:%S UTC")"'","host":"github-actions"}'
