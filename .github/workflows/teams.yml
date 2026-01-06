@@ -2,7 +2,7 @@ name: PapersBot -> Teams
 
 on:
   schedule:
-    - cron: "0 0 * * *"   # 毎日 00:00 UTC = 09:00 JST
+    - cron: "/5 * * * *"   # 毎日 00:00 UTC = 09:00 JST
   workflow_dispatch:
 jobs:
   run:
