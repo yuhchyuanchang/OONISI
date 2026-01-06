@@ -8,7 +8,6 @@
 # author:   François-Xavier Coudert
 # e-mail:   fxcoudert@gmail.com
 #
-from datetime import datetime, timedelta, timezone
 import os
 import random
 import re
@@ -37,30 +36,7 @@ regex = re.compile(r"""
     | framework.material
   )
   """, re.IGNORECASE | re.VERBOSE)
-def entry_datetime_utc(entry):
-    # feedparser は published_parsed / updated_parsed を time.struct_time で持つことがある
-    for attr in ("published_parsed", "updated_parsed"):
-        t = getattr(entry, attr, None)
-        if t:
-            # struct_time -> datetime(UTC)
-            return datetime(*t[:6], tzinfo=timezone.utc)
-    return None
 
-# ---- どこかで（for entry in feed.entries の中） ----
-now_utc = datetime.now(timezone.utc)
-cutoff = now_utc - timedelta(hours=24)
-
-dt = entry_datetime_utc(entry)
-
-# 日付が取れないRSSは「捨てる」(安全側) or 「通す」(拾い漏れ減)
-if dt is None:
-    continue   # ←安全側（おすすめ）
-    # pass     # ←拾い漏れ減らすならこっち
-
-if dt < cutoff:
-    continue
-
-# We select entries based on title or summary (abstract, for some feeds)
 def entryMatches(entry):
     # Malformed entry
     if "title" not in entry:
