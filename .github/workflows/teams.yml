@@ -1,26 +1,53 @@
-set -euo pipefail
+name: PapersBot -> Teams
 
-test -n "${TEAMS_WEBHOOK_URL:-}" || { echo "❌ Secret empty"; exit 1; }
+on:
+  schedule:
+    - cron: "0 9 * * *"   # 毎日 09:00 UTC（日本時間 18:00）
+  workflow_dispatch:
 
-python papersbot.py --no-twitter > out.txt 2> err.txt || {
-  echo "❌ papersbot.py failed"
-  echo "----- stderr -----"
-  cat err.txt
-  exit 1
-}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-python - <<'PY' > payload.json
-import json, datetime
-msg = open("out.txt", "r", encoding="utf-8", errors="replace").read().strip()
-payload = {
-  "user_name": "PapersBot",
-  "feedback_message": msg if msg else "（新着なし）",
-  "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
-  "host": "local",
-}
-print(json.dumps(payload, ensure_ascii=False))
-PY
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
-curl -sS --fail-with-body -X POST "$TEAMS_WEBHOOK_URL" \
-  -H "Content-Type: application/json" \
-  --data-binary @payload.json
+      - name: Run PapersBot and notify Teams
+        shell: bash
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+        run: |
+          set -euo pipefail
+
+          test -n "${TEAMS_WEBHOOK_URL:-}" || { echo "❌ Secret empty"; exit 1; }
+
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+          python papersbot.py --no-twitter > out.txt 2> err.txt || {
+            echo "❌ papersbot.py failed"
+            echo "----- stderr -----"
+            cat err.txt
+            exit 1
+          }
+
+          python - <<'PY' > payload.json
+          import json, datetime
+          msg = open("out.txt", "r", encoding="utf-8", errors="replace").read().strip()
+          payload = {
+            "user_name": "PapersBot",
+            "feedback_message": msg if msg else "（新着なし）",
+            "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+            "host": "github-actions",
+          }
+          print(json.dumps(payload, ensure_ascii=False))
+          PY
+
+          curl -sS --fail-with-body -X POST "$TEAMS_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            --data-binary @payload.json
