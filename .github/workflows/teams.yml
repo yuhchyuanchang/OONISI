@@ -84,8 +84,10 @@ jobs:
           now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
           
           if items:
-              msg_lines = [f"{i}. [{t}]({u})" for i, (t, u) in enumerate(items[:10], 1)]
-              msg = "\n".join(msg_lines)
+              msg_lines = []
+              for i, (t, u) in enumerate(items[:10], 1):
+                  msg_lines.append(f"{i}. {t}\n{u}")
+              msg = "\n\n".join(msg_lines)
           else:
               msg = "（新着なし）"
           
