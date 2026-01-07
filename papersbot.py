@@ -26,16 +26,37 @@ from mastodon import Mastodon, MastodonError
 
 # This is the regular expression that selects the papers of interest
 regex = re.compile(r"""
-  (   \b(MOF|MOFs|COF|COFs|ZIF|ZIFs)\b
-    | metal.organic.framework
-    | covalent.organic.framework
-    | metal–organic.framework
-    | covalent–organic.framework
-    | imidazolate.framework
-    | porous.coordination.polymer
-    | framework.material
-  )
-  """, re.IGNORECASE | re.VERBOSE)
+(
+  # --- MOF / COF / ZIF 本体 ---
+    \b(MOF|MOFs|COF|COFs|ZIF|ZIFs)\b
+  | metal[-– ]organic[-– ]frameworks?
+  | covalent[-– ]organic[-– ]frameworks?
+  | imidazolate[-– ]frameworks?
+)
+
+.*?
+
+(
+  # --- ガス種 ---
+    CO2|CO₂
+  | CH4|methane
+  | SF6|SF₆
+  | refrigerant|refrigerants
+  | fluorocarbon|fluorinated
+  | hydrofluorocarbon|HFC
+  | R-\d{2,4}[a-zA-Z]?
+)
+
+.*?
+
+(
+  # --- 用途 ---
+    adsorption|adsorptive
+  | separation|selective|selectivity
+  | storage|uptake|capacity
+  | capture|trapping
+)
+""", re.IGNORECASE | re.VERBOSE | re.DOTALL)
 
 def entryMatches(entry):
     # Malformed entry
