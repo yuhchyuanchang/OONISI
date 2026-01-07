@@ -52,7 +52,11 @@ jobs:
           #
           # ただし SNS 投稿はしたくない → SNS系の資格情報(secrets)を設定しない運用にする
           # （api接続に失敗して投稿されず、Teams送信だけ行う）
-          python -u -X faulthandler papersbot.py > log.txt 2>&1 || {
+          python - <<'PY'
+          import sys
+          print("ARGV for run:", ["papersbot.py","--do-not-tweet","--mark-posted"])
+          PY
+          python -u -X faulthandler papersbot.py --do-not-tweet --mark-posted > log.txt 2>&1 || {
             code=$?
             echo "❌ papersbot.py failed (exit=$code)"
             echo "=== last 200 lines of log.txt ==="
