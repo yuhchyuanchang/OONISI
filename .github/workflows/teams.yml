@@ -85,6 +85,28 @@ jobs:
                   title = title[:137] + "..."
           
               items.append((title, url))
+          # ===== ここから追加：優先順 MOF→COF→CH4/methane→CO2→SF6→NH3 =====
+          priority = [
+              ("MOF", 100),
+              ("COF", 90),
+              ("CH4", 80),
+              ("methane", 80),
+              ("CO2", 70),
+              ("SF6", 60),
+              ("NH3", 50),
+          ]
+
+          def score(title: str) -> int:
+              t = title.lower()
+              s = 0
+              for kw, w in priority:
+                  if kw.lower() in t:
+                      s += w
+              return s
+
+          # スコア降順（同点は元の順を維持）
+          items.sort(key=lambda x: score(x[0]), reverse=True)
+          # ===== 追加ここまで =====
           
           now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
           
