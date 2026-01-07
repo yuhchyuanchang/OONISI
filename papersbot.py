@@ -286,8 +286,9 @@ class PapersBot:
     n_seen = 0
     n_tweeted = 0
 
-    def __init__(self, doTweet=False):
+    def __init__(self, doTweet=False, markPosted=False):
         self.do_post = bool(doTweet)   # ←明示的に保存
+        self.mark_posted = bool(markPosted)
         self.feeds = readFeedsList()
         self.posted = readPosted()
 
@@ -502,8 +503,8 @@ def main():
 
     # True = real posting; False = dry-run
     doTweet = "--do-not-tweet" not in sys.argv
-
-    bot = PapersBot(doTweet)
+    markPosted = "--mark-posted" in sys.argv
+    bot = PapersBot(doTweet, markPosted)
 
     if "--top-tweets" in sys.argv:
         bot.printTopTweets()
@@ -936,8 +937,14 @@ class PapersBot:
                 sys.exit(1)
 
         # Record as posted ONLY after successful posting attempts
-        self.addToPosted(entry.id)
-        self.n_tweeted += 1
+        # --- 記録ポリシー ---
+        # do_post=True: 実投稿したので記録する
+        # do_post=False でも mark_posted=True: Teams送信想定なので記録する
+        if self.do_post or self.mark_posted:
+            self.addToPosted(entry.id)
+
+        if self.do_post:
+            self.n_tweeted += 1
 
         if image_file:
             os.remove(image_file)
@@ -1011,7 +1018,7 @@ class PapersBot:
 
 
 def main():
-    options_allowed = ["--do-not-tweet", "--top-tweets"]
+    options_allowed = ["--do-not-tweet", "--top-tweets", "--mark-posted"]
     for arg in sys.argv[1:]:
         if arg not in options_allowed:
             print(f"Unknown option: {arg}")
