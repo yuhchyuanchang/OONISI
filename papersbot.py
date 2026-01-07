@@ -1024,10 +1024,10 @@ def main():
             print(f"Unknown option: {arg}")
             sys.exit(1)
 
-    # True = real posting; False = dry-run
-    doTweet = "--do-not-tweet" not in sys.argv
+    doTweet = ("--do-not-tweet" not in sys.argv)
+    markPosted = ("--mark-posted" in sys.argv)
 
-    bot = PapersBot(doTweet)
+    bot = PapersBot(doTweet, markPosted)
 
     if "--top-tweets" in sys.argv:
         bot.printTopTweets()
@@ -1035,6 +1035,7 @@ def main():
 
     bot.run()
     bot.printStats()
+
 
 
 if __name__ == "__main__":
