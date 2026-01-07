@@ -57,12 +57,15 @@ jobs:
           
           text = open("log.txt", "r", encoding="utf-8", errors="replace").read()
           
-          # "TWEET: <title> <url>" を抽出（IMAGE行は無視）
+          # "TWEET: <title> <url>" を抽出
           items = []
+          seen_urls = set()
+          
           for line in text.splitlines():
               line = line.strip()
               if not line.startswith("TWEET: "):
                   continue
+          
               body = line[len("TWEET: "):].strip()
           
               # 末尾URLを取り出す
@@ -73,7 +76,11 @@ jobs:
               title = m.group(1).strip()
               url = m.group(2).strip()
           
-              # タイトルが長すぎると崩れるので少しカット
+              # ★重複排除（URLでユニーク化）
+              if url in seen_urls:
+                  continue
+              seen_urls.add(url)
+          
               if len(title) > 140:
                   title = title[:137] + "..."
           
@@ -81,7 +88,6 @@ jobs:
           
           now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
           
-          # Markdownリンクとして整形（これがリンク化の肝）
           if items:
               msg_lines = [f"{i}. [{t}]({u})" for i, (t, u) in enumerate(items[:10], 1)]
               msg = "\n".join(msg_lines)
