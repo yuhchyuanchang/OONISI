@@ -804,8 +804,9 @@ class PapersBot:
     n_seen = 0
     n_tweeted = 0
 
-    def __init__(self, doTweet=False):
+    def __init__(self, doTweet=False, markPosted=False):
         self.do_post = bool(doTweet)   # ←明示的に保存
+        self.mark_posted = bool(markPosted)
         self.feeds = readFeedsList()
         self.posted = readPosted()
 
@@ -900,9 +901,12 @@ class PapersBot:
 
         # ---- Dry-run mode: do not post AND do not touch posted.dat ----
         if not self.do_post:
-            if image_file:
-                os.remove(image_file)
-            return
+          # mark-posted のときは記録だけ残す
+          if self.mark_posted:
+              self.addToPosted(entry.id)
+          if image_file:
+              os.remove(image_file)
+          return
         # --------------------------------------------------------------
 
         # Post to Twitter
@@ -942,10 +946,8 @@ class PapersBot:
         # do_post=False でも mark_posted=True: Teams送信想定なので記録する
         if self.do_post or self.mark_posted:
             self.addToPosted(entry.id)
-
         if self.do_post:
             self.n_tweeted += 1
-
         if image_file:
             os.remove(image_file)
 
@@ -1018,6 +1020,7 @@ class PapersBot:
 
 
 def main():
+    # Allow new flag: --mark-posted (dry-run but write posted.dat)
     options_allowed = ["--do-not-tweet", "--top-tweets", "--mark-posted"]
     for arg in sys.argv[1:]:
         if arg not in options_allowed:
@@ -1035,6 +1038,11 @@ def main():
 
     bot.run()
     bot.printStats()
+
+
+if __name__ == "__main__":
+    main()
+
 
 
 
