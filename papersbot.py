@@ -51,7 +51,7 @@ regex = re.compile(r"""
 
 (
   # --- 用途 ---
-    adsorption|adsorptive
+    sorption|adsorptive
   | separation|selective|selectivity
   | storage|uptake|capacity
   | capture|trapping
