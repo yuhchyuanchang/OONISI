@@ -53,11 +53,10 @@ jobs:
 
           # (B) 任意：--do-not-tweet 時に posted.dat を更新させない（おすすめ）
           #     ※デバッグ実行で「投稿してないのに既投稿扱い」になるのを防ぐ
-          cp -f posted.dat posted.dat.bak
 
           # stdout + stderr をまとめて log.txt に保存
           export PYTHONFAULTHANDLER=1
-          python -u -X faulthandler papersbot.py --do-not-tweet > log.txt 2>&1 || {
+          python -u -X faulthandler papersbot.py > log.txt 2>&1 || {
             code=$?
             echo "❌ papersbot.py failed (exit=$code)"
             echo "=== last 200 lines of log.txt ==="
@@ -67,7 +66,6 @@ jobs:
 
           # (B) を有効にした場合：posted.dat を元に戻す
           #     本番投稿のときはこの2行をコメントアウトして「更新を反映」させる運用にする
-          mv -f posted.dat.bak posted.dat
 
           echo "=== last 50 lines of log.txt (success) ==="
           tail -n 50 log.txt || true
