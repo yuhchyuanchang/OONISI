@@ -1,10 +1,10 @@
+
 name: PapersBot -> Teams
 
 on:
   schedule:
     - cron: "0 0 * * *"   # 毎日 00:00 UTC = 09:00 JST
   workflow_dispatch:
-
 jobs:
   run:
     runs-on: ubuntu-latest
@@ -22,24 +22,19 @@ jobs:
         shell: bash
         env:
           TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          DEEPL_AUTH_KEY: ${{ secrets.DEEPL_AUTH_KEY }}   # ★追加（GitHub Secretsに登録）
         run: |
           set -euo pipefail
           set -x
-
           # Secret チェック
           test -n "${TEAMS_WEBHOOK_URL:-}" || { echo "❌ Secret empty"; exit 1; }
-
           # Python 依存関係
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-
           # 実行環境の確認
           echo "=== pwd ==="
           pwd
           echo "=== ls -la ==="
           ls -la
-
           # stdout + stderr をまとめて log.txt に保存
           export PYTHONFAULTHANDLER=1
           python -u -X faulthandler papersbot.py --do-not-tweet > log.txt 2>&1 || {
@@ -49,33 +44,15 @@ jobs:
             tail -n 200 log.txt || true
             exit $code
           }
-
           echo "=== last 50 lines of log.txt (success) ==="
           tail -n 50 log.txt || true
-
           # Teams に送る JSON を作成
           python - <<'PY' > payload.json
-          import json, datetime, re, os
-          import requests
+          import json, datetime, re
           
           text = open("log.txt", "r", encoding="utf-8", errors="replace").read()
           
-          DEEPL_AUTH_KEY = os.getenv("DEEPL_AUTH_KEY", "").strip()
-          
-          def translate_ja(s: str) -> str:
-              if not DEEPL_AUTH_KEY:
-                  return ""
-              try:
-                  r = requests.post(
-                      "https://api-free.deepl.com/v2/translate",
-                      data={"auth_key": DEEPL_AUTH_KEY, "text": s, "target_lang": "JA"},
-                      timeout=15,
-                  )
-                  r.raise_for_status()
-                  return r.json()["translations"][0]["text"].strip()
-              except Exception:
-                  return ""
-          
+          # "TWEET: <title> <url>" を抽出
           items = []
           seen_urls = set()
           
@@ -85,83 +62,42 @@ jobs:
                   continue
           
               body = line[len("TWEET: "):].strip()
+          
+              # 末尾URLを取り出す
               m = re.match(r"(.+?)\s+(https?://\S+)$", body)
               if not m:
                   continue
           
-              title_en = m.group(1).strip()
+              title = m.group(1).strip()
               url = m.group(2).strip()
           
+              # ★重複排除（URLでユニーク化）
               if url in seen_urls:
                   continue
               seen_urls.add(url)
           
-              # 英語タイトルを先に短縮（翻訳コスト抑える）
-              if len(title_en) > 180:
-                  title_en = title_en[:177] + "..."
+              if len(title) > 140:
+                  title = title[:137] + "..."
           
-              title_ja = translate_ja(title_en)
-          
-              items.append({
-                  "title_ja": title_ja,
-                  "title_en": title_en,
-                  "url": url,
-              })
-          
-          # ===== 優先順ソート（MOF→COF→CH4/methane→CO2→SF6→NH3）※原文で判定 =====
-          priority = [
-              ("MOF", 100),
-              ("COF", 90),
-              ("CH4", 80),
-              ("methane", 80),
-              ("CO2", 70),
-              ("SF6", 60),
-              ("NH3", 50),
-          ]
-          
-          def score(title_en: str) -> int:
-              t = title_en.lower()
-              s = 0
-              for kw, w in priority:
-                  if kw.lower() in t:
-                      s += w
-              return s
-          
-          items.sort(key=lambda d: score(d["title_en"]), reverse=True)
-          items = items[:10]  # 上位10件だけ
+              items.append((title, url))
           
           now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-          # ===== feedback_message を作成（カード表示用・超重要）=====
+          
           if items:
-              lines = []
-              for i, d in enumerate(items, 1):
-                  ja = (d.get("title_ja") or "").strip()
-                  en = d.get("title_en", "").strip()
-                  url = d.get("url", "").strip()
-          
-                  if ja:
-                      lines.append(f"{i}. {ja}\n({en})\n{url}")
-                  else:
-                      lines.append(f"{i}. {en}\n{url}")
-          
-              feedback_message = "\n\n".join(lines)
+              msg_lines = [f"{i}. [{t}]({u})" for i, (t, u) in enumerate(items[:10], 1)]
+              msg = "\n".join(msg_lines)
           else:
-              feedback_message = "（新着なし）"
-          # ===== ここまで =====
-          payload = {
-              "user_name": "PapersBot",
-              "timestamp": now,
-              "host": "github-actions",
-              "feedback_message": feedback_message,  # ★これを追加
-              "items": items,                        # ★これは残す
-          }
+              msg = "（新着なし）"
           
+          payload = {
+            "user_name": "PapersBot",
+            "feedback_message": msg,
+            "timestamp": now,
+            "host": "github-actions",
+          }
           print(json.dumps(payload, ensure_ascii=False))
           PY
-
-
           # Teams Webhook（Power Automate）へ POST
           curl -sS --fail-with-body -X POST "$TEAMS_WEBHOOK_URL" \
             -H "Content-Type: application/json" \
             --data-binary @payload.json
-
