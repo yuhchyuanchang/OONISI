@@ -57,68 +57,58 @@ jobs:
           python - <<'PY' > payload.json
           import json, datetime, re, os
           import requests
-
+          
           text = open("log.txt", "r", encoding="utf-8", errors="replace").read()
-
+          
           DEEPL_AUTH_KEY = os.getenv("DEEPL_AUTH_KEY", "").strip()
-
+          
           def translate_ja(s: str) -> str:
-              """DeepLで英→日。失敗したら空文字を返す（ワークフローは落とさない）"""
               if not DEEPL_AUTH_KEY:
                   return ""
               try:
                   r = requests.post(
                       "https://api-free.deepl.com/v2/translate",
-                      data={
-                          "auth_key": DEEPL_AUTH_KEY,
-                          "text": s,
-                          "target_lang": "JA",
-                      },
+                      data={"auth_key": DEEPL_AUTH_KEY, "text": s, "target_lang": "JA"},
                       timeout=15,
                   )
                   r.raise_for_status()
                   return r.json()["translations"][0]["text"].strip()
               except Exception:
                   return ""
-
-          # "TWEET: <title> <url>" を抽出
+          
           items = []
           seen_urls = set()
-
+          
           for line in text.splitlines():
               line = line.strip()
               if not line.startswith("TWEET: "):
                   continue
-
+          
               body = line[len("TWEET: "):].strip()
-
-              # 末尾URLを取り出す
               m = re.match(r"(.+?)\s+(https?://\S+)$", body)
               if not m:
                   continue
-
-              title = m.group(1).strip()
+          
+              title_en = m.group(1).strip()
               url = m.group(2).strip()
-
-              # ★重複排除（URLでユニーク化）
+          
               if url in seen_urls:
                   continue
               seen_urls.add(url)
-
-              # 原文を短く（翻訳前にやる）
-              if len(title) > 140:
-                  title = title[:137] + "..."
-
-              # ★日本語＋原文を両方表示
-              ja = translate_ja(title)
-              if ja:
-                  title_disp = f"{ja}\n({title})"
-              else:
-                  title_disp = title
-
-              items.append((title_disp, url))
-
-          # ===== 優先順 MOF→COF→CH4/methane→CO2→SF6→NH3 =====
+          
+              # 英語タイトルを先に短縮（翻訳コスト抑える）
+              if len(title_en) > 180:
+                  title_en = title_en[:177] + "..."
+          
+              title_ja = translate_ja(title_en)
+          
+              items.append({
+                  "title_ja": title_ja,
+                  "title_en": title_en,
+                  "url": url,
+              })
+          
+          # ===== 優先順ソート（MOF→COF→CH4/methane→CO2→SF6→NH3）※原文で判定 =====
           priority = [
               ("MOF", 100),
               ("COF", 90),
@@ -128,36 +118,30 @@ jobs:
               ("SF6", 60),
               ("NH3", 50),
           ]
-
-          def score(title_disp: str) -> int:
-              # title_disp は「日本語\n(原文)」になりうるので、原文側にマッチしやすいが
-              # 日本語に英字が消えるケースもあるため、両方見たいなら原文を持ち回す設計も可。
-              t = title_disp.lower()
+          
+          def score(title_en: str) -> int:
+              t = title_en.lower()
               s = 0
               for kw, w in priority:
                   if kw.lower() in t:
                       s += w
               return s
-
-          items.sort(key=lambda x: score(x[0]), reverse=True)
-          # ===== ここまで =====
-
+          
+          items.sort(key=lambda d: score(d["title_en"]), reverse=True)
+          items = items[:10]  # 上位10件だけ
+          
           now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
-
-          if items:
-              msg_lines = [f"{i}. [{t}]({u})" for i, (t, u) in enumerate(items[:10], 1)]
-              msg = "\n".join(msg_lines)
-          else:
-              msg = "（新着なし）"
-
+          
           payload = {
-            "user_name": "PapersBot",
-            "feedback_message": msg,
-            "timestamp": now,
-            "host": "github-actions",
+              "user_name": "PapersBot",
+              "timestamp": now,
+              "host": "github-actions",
+              "items": items,
           }
+          
           print(json.dumps(payload, ensure_ascii=False))
           PY
+
 
           # Teams Webhook（Power Automate）へ POST
           curl -sS --fail-with-body -X POST "$TEAMS_WEBHOOK_URL" \
