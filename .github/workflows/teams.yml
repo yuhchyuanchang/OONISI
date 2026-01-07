@@ -131,12 +131,29 @@ jobs:
           items = items[:10]  # 上位10件だけ
           
           now = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC")
+          # ===== feedback_message を作成（カード表示用・超重要）=====
+          if items:
+              lines = []
+              for i, d in enumerate(items, 1):
+                  ja = (d.get("title_ja") or "").strip()
+                  en = d.get("title_en", "").strip()
+                  url = d.get("url", "").strip()
           
+                  if ja:
+                      lines.append(f"{i}. {ja}\n({en})\n{url}")
+                  else:
+                      lines.append(f"{i}. {en}\n{url}")
+          
+              feedback_message = "\n\n".join(lines)
+          else:
+              feedback_message = "（新着なし）"
+          # ===== ここまで =====
           payload = {
               "user_name": "PapersBot",
               "timestamp": now,
               "host": "github-actions",
-              "items": items,
+              "feedback_message": feedback_message,  # ★これを追加
+              "items": items,                        # ★これは残す
           }
           
           print(json.dumps(payload, ensure_ascii=False))
