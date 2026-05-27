@@ -26,16 +26,12 @@ from mastodon import Mastodon, MastodonError
 
 # This is the regular expression that selects the papers of interest
 regex = re.compile(r"""
-  (   \b(MOF|MOFs|COF|COFs|ZIF|ZIFs)\b
-    | metal.organic.framework
-    | covalent.organic.framework
-    | metal–organic.framework
-    | covalent–organic.framework
-    | imidazolate.framework
-    | porous.coordination.polymer
-    | framework.material
-  )
-  """, re.IGNORECASE | re.VERBOSE)
+(
+    \bHKUST[- ]?1\b
+  | \bCu[- ]?BTC\b
+  | \bMOF[- ]?199\b
+)
+""", re.IGNORECASE | re.VERBOSE)
 
 
 def entryMatches(entry):
