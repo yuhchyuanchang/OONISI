@@ -39,12 +39,7 @@ def entryMatches(entry):
     if "title" not in entry:
         return False
 
-    if regex.search(entry.title):
-        return True
-    if "summary" in entry:
-        return regex.search(entry.summary)
-    else:
-        return False
+    return bool(regex.search(entry.title))
 
 
 # Find the URL for an image associated with the entry
