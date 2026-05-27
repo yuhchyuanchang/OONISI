@@ -428,17 +428,27 @@ class PapersBot:
                 sys.exit(1)
 
             for entry in parsed_feed.entries:
-                if entryMatches(entry):
-                    self.n_seen += 1
-                    # If no ID provided, use the link as ID
-                    if "id" not in entry:
-                        entry.id = entry.link
-                    if entry.id not in self.posted:
-                        self.sendTweet(entry)
-                        # Bail out if we have reached max number of tweets
-                        if self.throttle > 0 and self.n_tweeted >= self.throttle:
-                            print(f"Max number of papers met ({self.throttle}), stopping now")
-                            return
+
+                title = cleanText(htmlToText(entry.title))
+            
+                print("CHECK:", repr(title))
+            
+                keywords = [
+                    "HKUST-1",
+                    "HKUST 1",
+                    "Cu-BTC",
+                    "MOF-199"
+                ]
+            
+                matched = False
+                for kw in keywords:
+                    if kw.lower() in title.lower():
+                        matched = True
+                        print("MATCH:", title)
+                        break
+            
+                if not matched:
+                    continue
 
     # Print statistics of a given run
     def printStats(self):
