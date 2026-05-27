@@ -437,10 +437,14 @@ class PapersBot:
                 print("CHECK:", repr(title))
             
                 keywords = [
-                    "HKUST-1",
-                    "HKUST 1",
-                    "Cu-BTC",
-                    "MOF-199"
+                    "ZIF-8",
+                    "ZIF 8",
+                    "ZIF-67",
+                    "ZIF 67",
+                    "UiO-66",
+                    "UiO 66",
+                    "SIFSIX-3-Ni",
+                    "SIFSIX 3 Ni"
                 ]
             
                 matched = False
