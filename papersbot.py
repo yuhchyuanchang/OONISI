@@ -38,13 +38,21 @@ def entryMatches(entry):
     if "title" not in entry:
         return False
 
-    title = entry.title
+    title = cleanText(htmlToText(entry.title))
 
-    print("CHECK:", title)
+    print("CHECK:", repr(title))
 
-    if regex.search(title):
-        print("MATCH:", title)
-        return True
+    keywords = [
+        "HKUST-1",
+        "HKUST 1",
+        "Cu-BTC",
+        "MOF-199"
+    ]
+
+    for kw in keywords:
+        if kw.lower() in title.lower():
+            print("MATCH:", title)
+            return True
 
     return False
 
