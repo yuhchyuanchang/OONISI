@@ -429,6 +429,9 @@ class PapersBot:
 
             for entry in parsed_feed.entries:
 
+                if "title" not in entry:
+                    continue
+            
                 title = cleanText(htmlToText(entry.title))
             
                 print("CHECK:", repr(title))
@@ -441,6 +444,7 @@ class PapersBot:
                 ]
             
                 matched = False
+            
                 for kw in keywords:
                     if kw.lower() in title.lower():
                         matched = True
@@ -449,6 +453,14 @@ class PapersBot:
             
                 if not matched:
                     continue
+            
+                self.n_seen += 1
+            
+                if "id" not in entry:
+                    entry.id = entry.link
+            
+                if entry.id not in self.posted:
+                    self.sendTweet(entry)
 
     # Print statistics of a given run
     def printStats(self):
