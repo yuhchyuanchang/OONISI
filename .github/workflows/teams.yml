@@ -51,7 +51,10 @@ jobs:
           pwd
           echo "=== ls -la ==="
           ls -la
-
+          echo "=== CHECK papersbot.py ==="
+          grep "CHECK:" papersbot.py || true
+          grep "MATCH:" papersbot.py || true
+          grep "HKUST" papersbot.py || true
           # (B) 任意：--do-not-tweet 時に posted.dat を更新させない（おすすめ）
           #     ※デバッグ実行で「投稿してないのに既投稿扱い」になるのを防ぐ
 
