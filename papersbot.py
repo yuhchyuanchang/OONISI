@@ -35,12 +35,18 @@ regex = re.compile(r"""
 
 
 def entryMatches(entry):
-    # Malformed entry
     if "title" not in entry:
         return False
 
-    return bool(regex.search(entry.title))
+    title = entry.title
 
+    print("CHECK:", title)
+
+    if regex.search(title):
+        print("MATCH:", title)
+        return True
+
+    return False
 
 # Find the URL for an image associated with the entry
 def findImage(entry):
