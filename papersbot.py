@@ -462,7 +462,7 @@ def main():
 
     # Initialize our bot
     doTweet = "--do-not-tweet" not in sys.argv
-    bot = PapersBot(doTweet)
+    bot = PapersBot(False)
 
     # We can print top tweets
     if "--top-tweets" in sys.argv:
