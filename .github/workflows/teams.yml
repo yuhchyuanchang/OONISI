@@ -40,6 +40,7 @@ jobs:
 
           # 初回用：posted.dat が無ければ作る（空でOK）
           touch posted.dat
+          rm -f log.txt
 
           # Python 依存関係
           python -m pip install --upgrade pip
